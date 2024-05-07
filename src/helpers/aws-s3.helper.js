@@ -13,7 +13,7 @@ exports.uploadFileToWasabi = async (file, key) => {
       fs.readFile(file.path, function (err, buffer) {
         if (err) throw err; // Something went wrong!
         const params = {
-          Bucket: "organic-dating",
+          Bucket: "skin-toys",
           Key: key,
           Body: buffer,
         };
