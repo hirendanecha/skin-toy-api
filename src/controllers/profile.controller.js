@@ -81,7 +81,7 @@ exports.updateProfile = async function (req, res) {
       //     Country: reqBody?.Country,
       //   };
 
-      //   User.update(req.body.UserID, updateUserData, (err, result) => {
+      //   User.update(req.body.userId, updateUserData, (err, result) => {
       //     if (err) return utils.send500(res, err);
       //   });
       // }
@@ -116,7 +116,8 @@ const getUsername = async function (username, exisingusername) {
 
 exports.getUsersByUsername = async function (req, res) {
   const { searchText } = req.query;
-  const data = await Profile.getUsersByUsername(searchText);
+  const profileId = req.user.id;
+  const data = await Profile.getUsersByUsername(searchText, profileId);
   return res.send({
     error: false,
     data: data,
@@ -147,6 +148,25 @@ exports.getNotification = async function (req, res) {
     error: false,
     data: data,
   });
+};
+
+exports.getNotificationById = async function (req, res) {
+  const { id } = req.params;
+  const { page, size } = req.body;
+  const { limit, offset } = getPagination(page, size);
+  const notificationData = await Profile.getNotificationById(id, limit, offset);
+
+  return res.send(
+    getPaginationData(
+      { count: notificationData.count, docs: notificationData.data },
+      page,
+      limit
+    )
+  );
+  // return res.send({
+  //   error: false,
+  //   data: data,
+  // });
 };
 
 exports.deleteNotification = function (req, res) {
@@ -214,9 +234,10 @@ exports.getGroupFileResourcesById = async function (req, res) {
 
 exports.getProfiles = async function (req, res) {
   try {
-    const { page, limit } = req.query;
+    const { page, limit, gender } = req.query;
+    const { id } = req.params;
     const offset = page > 0 ? (page - 1) * limit : 0;
-    const profiles = await Profile.getProfiles(limit, offset);
+    const profiles = await Profile.getProfiles(limit, offset, id, gender);
     if (profiles.length) {
       return res.send({ error: false, data: profiles });
     } else {
@@ -230,9 +251,15 @@ exports.getProfiles = async function (req, res) {
 
 exports.getProfilePictures = async function (req, res) {
   try {
-    const { page, limit } = req.query;
+    const { page, limit, gender } = req.query;
+    const { id } = req.params;
     const offset = page > 0 ? (page - 1) * limit : 0;
-    const profilePictures = await Profile.getProfilePictures(+limit, +offset);
+    const profilePictures = await Profile.getProfilePictures(
+      +limit,
+      +offset,
+      id,
+      gender
+    );
     if (profilePictures.length) {
       return res.send({ error: false, data: profilePictures });
     } else {

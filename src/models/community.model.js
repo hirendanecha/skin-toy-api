@@ -42,7 +42,7 @@ Community.findAllCommunity = async function (
   //   `SELECT count(c.Id) as count FROM community as c WHERE ${whereCondition}`
   // );
   // const searchData = await executeQuery(
-  //   `select c.*,count(cm.profileId) as members,c.Country,c.City,c.State,c.Zip,c.County from community as c left join communityMembers as cm on cm.communityId = c.Id left join profile as p on p.ID = c.profileId where ${whereCondition} GROUP BY c.Id order by c.creationDate desc limit ? offset ?`,
+  //   `select c.*,count(cm.profileId) as members,c.Country,c.City,c.State,c.Zip,c.County from community as c left join communityMembers as cm on cm.communityId = c.Id left join profile as p on p.id = c.profileId where ${whereCondition} GROUP BY c.Id order by c.creationDate desc limit ? offset ?`,
   //   [limit, offset]
   // );
   // return {
@@ -99,7 +99,7 @@ Community.getCommunities = async function (
     `SELECT count(c.Id) as count FROM community as c WHERE ${whereCondition}`
   );
   const searchData = await executeQuery(
-    `select c.*,count(cm.profileId) as members,c.Country,c.City,c.State,c.Zip,c.County from community as c left join communityMembers as cm on cm.communityId = c.Id left join profile as p on p.ID = c.profileId where ${whereCondition} GROUP BY c.Id order by c.creationDate desc limit ? offset ?`,
+    `select c.*,count(cm.profileId) as members,c.Country,c.City,c.State,c.Zip,c.County from community as c left join communityMembers as cm on cm.communityId = c.Id left join profile as p on p.id = c.profileId where ${whereCondition} GROUP BY c.Id order by c.creationDate desc limit ? offset ?`,
     [limit, offset]
   );
   return {
@@ -208,9 +208,9 @@ Community.leaveFromCommunity = function (profileId, communityId, result) {
 
 Community.findCommunityById = async function (id) {
   const query1 =
-    "select c.*,p.Username,count(cm.profileId) as members from community as c left join profile as p on p.ID = c.profileId left join communityMembers as cm on cm.communityId = c.Id where c.Id=?;";
+    "select c.*,p.userName,count(cm.profileId) as members from community as c left join profile as p on p.id = c.profileId left join communityMembers as cm on cm.communityId = c.Id where c.Id=?;";
   const query2 =
-    "select cm.*,p.Username, p.ProfilePicName,p.FirstName,p.LastName,p.Zip,p.Country,p.State,p.City,p.MobileNo,p.CoverPicName,u.Email,p.UserID from communityMembers as cm left join profile as p on p.ID = cm.profileId left join users as u on u.Id = p.UserID  where cm.communityId = ?;";
+    "select cm.*,p.userName,p.profilePicName,p.zip,p.country,p.state,p.city,u.email,p.userId from communityMembers as cm left join profile as p on p.id = cm.profileId left join users as u on u.id = p.userId  where cm.communityId = ?;";
   const values = [id];
   const community = await executeQuery(query1, values);
   const members = await executeQuery(query2, values);
@@ -223,13 +223,13 @@ Community.findCommunityById = async function (id) {
 
 Community.findCommunityBySlug = async function (slug) {
   const communityQuery =
-    "select c.*,p.Username, count(cm.profileId) as members from community as c left join profile as p on p.ID = c.profileId left join communityMembers as cm on cm.communityId = c.Id where c.slug=?";
+    "select c.*,p.userName, count(cm.profileId) as members from community as c left join profile as p on p.id = c.profileId left join communityMembers as cm on cm.communityId = c.Id where c.slug=?";
   const communities = await executeQuery(communityQuery, [slug]);
   const community = communities?.[0] || {};
 
   if (community?.Id) {
     const getMembersQuery =
-      "select cm.*,p.Username, p.ProfilePicName,p.FirstName,p.LastName from communityMembers as cm left join profile as p on p.ID = cm.profileId where cm.communityId = ?;";
+      "select cm.*,p.userName, p.profilePicName from communityMembers as cm left join profile as p on p.id = cm.profileId where cm.communityId = ?;";
     const members = await executeQuery(getMembersQuery, [community?.Id]);
     community["memberList"] = members;
   }
@@ -322,17 +322,24 @@ Community.getCommunity = async function (id, pageType) {
   console.log(communityList);
   const localCommunities = [];
   for (const key in communityList) {
-    // const query1 =
-    //   "select cm.profileId from communityMembers as cm where cm.communityId = ?;";
     const query1 =
       "select pe.eId,eh.name from practitioner_emphasis as pe left join emphasis_healing as eh on eh.eId = pe.eId where pe.communityId =? ";
     const query2 =
       "select pa.aId,ah.name from practitioner_area as pa left join area_healing as ah on ah.aId = pa.aId where pa.communityId =? ";
+    const query3 =
+      "select cm.profileId from communityMembers as cm where cm.communityId = ?;";
     if (Object.hasOwnProperty.call(communityList, key)) {
       const community = communityList[key];
       const values1 = [community.Id];
       const emphasis = await executeQuery(query1, values1);
       const areas = await executeQuery(query2, values1);
+      const memberList = [];
+      const members = await executeQuery(query3, values1);
+      members.map((e) => {
+        memberList?.push(e.profileId);
+      });
+      community.memberList = memberList;
+      community.members = members.length;
       community.emphasis = emphasis;
       community.areas = areas;
       localCommunities.push(community);

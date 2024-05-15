@@ -32,7 +32,7 @@ var Post = function (post) {
 // Post.findAll = async function (limit, offset, search) {
 //   const whereCondition = `${
 //     search
-//       ? `p.isdeleted ='N' AND p.postdescription !='' AND pr.Username LIKE '%${search}%'`
+//       ? `p.isdeleted ='N' AND p.postdescription !='' AND pr.userName LIKE '%${search}%'`
 //       : `p.isdeleted ='N' AND p.postdescription !=''`
 //   }`;
 //   console.log(whereCondition);
@@ -41,7 +41,7 @@ var Post = function (post) {
 //   );
 
 //   const postData = await executeQuery(
-//     `SELECT p.*, pr.ProfilePicName, pr.Username, pr.FirstName from posts as p left join profile as pr on p.profileid = pr.ID where ${whereCondition} order by p.postcreationdate DESC limit ? offset ?`,
+//     `SELECT p.*, pr.profilePicName, pr.userName,  from posts as p left join profile as pr on p.profileid = pr.id where ${whereCondition} order by p.postcreationdate DESC limit ? offset ?`,
 //     [limit, offset]
 //   );
 //   return {
@@ -57,9 +57,9 @@ Post.findAll = async function (params) {
     ? `p.communityId = ${communityId} AND p.posttype in ('S', 'R','V') AND`
     : "p.communityId IS NULL AND p.posttype in ('S', 'R','V') AND";
 
-  const query = `SELECT p.*, pl.ActionType as react, pr.ProfilePicName, pr.Username, pr.FirstName, groupPr.FirstName as groupName, groupPr.UniqueLink as groupLink
+  const query = `SELECT p.*, pl.ActionType as react, pr.profilePicName, pr.userName
   from 
-  posts as p left join postlikedislike as pl on pl.ProfileID = ? and pl.PostID = p.id left join profile as pr on p.profileid = pr.ID left join profile as groupPr on p.posttoprofileid = groupPr.ID 
+  posts as p left join postlikedislike as pl on pl.ProfileID = ? and pl.PostID = p.id left join profile as pr on p.profileid = pr.id
   where ${communityCondition}
   p.profileid not in (SELECT UnsubscribeProfileId FROM unsubscribe_profiles where ProfileId = ?) AND p.isdeleted ='N' order by p.profileid in (SELECT SeeFirstProfileId from see_first_profile where ProfileId=?) DESC, p.id DESC limit ? offset ?`;
   const values = [profileId, profileId, profileId, limit, offset];
@@ -87,7 +87,7 @@ Post.getPostByProfileId = async function (params) {
   } else if (endDate) {
     whereCondition += `AND p.postcreationdate <= '${endDate}'`;
   }
-  const query = `SELECT p.*, pr.ProfilePicName, pr.Username, pr.FirstName, pr.FirstName,groupPr.FirstName as groupName, groupPr.UniqueLink as groupLink from posts as p left join profile as pr on p.profileid = pr.ID left join profile as groupPr on p.posttoprofileid = groupPr.ID where p.isdeleted ='N' and p.profileid =? and p.posttype in ('S', 'R','V') ${whereCondition} order by p.postcreationdate DESC limit ? offset ?;`;
+  const query = `SELECT p.*, pr.profilePicName, pr.userName from posts as p left join profile as pr on p.profileid = pr.id  where p.isdeleted ='N' and p.profileid =? and p.posttype in ('S', 'R','V') ${whereCondition} order by p.postcreationdate DESC limit ? offset ?;`;
   const values = [profileId, limit, offset];
   const postData = await executeQuery(query, values);
   // return postData;
@@ -103,7 +103,7 @@ Post.getPostByProfileId = async function (params) {
 Post.getPostByPostId = function (profileId, result) {
   db.query(
     // "SELECT * from posts where isdeleted ='N' order by postcreationdate DESC limit 15 ",
-    "SELECT p.*, pr.ProfilePicName, pr.Username, pr.FirstName,groupPr.FirstName as groupName, groupPr.UniqueLink as groupLink from posts as p left join profile as pr on p.profileid = pr.ID left join profile as groupPr on p.posttoprofileid = groupPr.ID where p.isdeleted ='N' and p.id =? ;",
+    "SELECT p.*, pr.profilePicName, pr.userName from posts as p left join profile as pr on p.profileid = pr.id  where p.isdeleted ='N' and p.id =? ;",
     profileId,
     function (err, res) {
       if (err) {
@@ -120,7 +120,7 @@ Post.getPostByPostId = function (profileId, result) {
 Post.getPdfsFile = function (profileId, result) {
   db.query(
     // "SELECT * from posts where isdeleted ='N' order by postcreationdate DESC limit 15 ",
-    "SELECT p.*, pr.ProfilePicName, pr.Username, pr.FirstName from posts as p left join profile as pr on p.profileid = pr.ID where p.isdeleted ='N' and p.pdfUrl is not null and p.profileid =? ;",
+    "SELECT p.*, pr.profilePicName, pr.userName  from posts as p left join profile as pr on p.profileid = pr.id where p.isdeleted ='N' and p.pdfUrl is not null and p.profileid =? ;",
     +profileId,
     function (err, res) {
       if (err) {
@@ -155,18 +155,18 @@ Post.create = async function (postData) {
           actionType: "T",
         });
         console.log(notification);
-        const findUser = `select u.Email,p.FirstName,p.LastName from users as u left join profile as p on p.UserID = u.Id where p.ID = ?`;
+        const findUser = `select u.email,p.userName from users as u left join profile as p on p.userId = u.id where p.id = ?`;
         const values = [tag?.id];
         const userData = await executeQuery(findUser, values);
-        const findSenderUser = `select p.ID,p.Username from profile as p where p.ID = ?`;
+        const findSenderUser = `select p.id,p.userName from profile as p where p.id = ?`;
         const values1 = [postData?.profileid];
         const senderData = await executeQuery(findSenderUser, values1);
         notifications.push(notification);
         if (tag?.id) {
           const userDetails = {
-            email: userData[0].Email,
-            profileId: senderData[0].ID,
-            userName: senderData[0].Username,
+            email: userData[0].email,
+            profileId: senderData[0].id,
+            userName: senderData[0].userName,
             firstName: userData[0].FirstName,
             lastName: userData[0].LastName,
             postId: notification?.postId || postData?.id,
@@ -226,7 +226,7 @@ Post.deleteAllData = async function (id) {
 
 Post.getPostComments = async function (profileId, postId) {
   // db.query(
-  //   "select c.*,pr.ProfilePicName, pr.Username, pr.FirstName from comments as c left join profile as pr on pr.ID = c.profileId where c.postId = ?",
+  //   "select c.*,pr.profilePicName, pr.userName,  from comments as c left join profile as pr on pr.id = c.profileId where c.postId = ?",
   //   [id],
   //   function (err, res) {
   //     if (err) {
@@ -239,13 +239,13 @@ Post.getPostComments = async function (profileId, postId) {
   // );
 
   const query =
-    "select c.*,pr.ProfilePicName,pr.Username, pr.FirstName, cl.actionType as react from comments as c left join commentsLikesDislikes as cl on cl.profileId = ? AND cl.commentId = c.id left join profile as pr on pr.ID = c.profileId where c.postId = ? and c.parentCommentId is NULL";
+    "select c.*,pr.profilePicName,pr.userName,cl.actionType as react from comments as c left join commentsLikesDislikes as cl on cl.profileId = ? AND cl.commentId = c.id left join profile as pr on pr.id = c.profileId where c.postId = ? and c.parentCommentId is NULL";
   const values = [profileId, postId];
   const commmentsList = await executeQuery(query, values);
   if (commmentsList.length >= 0) {
     const ids = commmentsList.map((ele) => Number(ele.id)).join(",");
     console.log(ids);
-    const query = `select c.*,pr.ProfilePicName, pr.Username, pr.FirstName, cl.actionType as react from comments as c left join commentsLikesDislikes as cl on cl.profileId = ? AND cl.commentId = c.id left join profile as pr on pr.ID = c.profileId where c.parentCommentId in (${
+    const query = `select c.*,pr.profilePicName, pr.userName, cl.actionType as react from comments as c left join commentsLikesDislikes as cl on cl.profileId = ? AND cl.commentId = c.id left join profile as pr on pr.id = c.profileId where c.parentCommentId in (${
       ids || null
     })`;
     const values = [profileId];

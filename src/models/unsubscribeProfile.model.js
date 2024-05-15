@@ -23,7 +23,7 @@ class UnsubscribeProfile {
   static async getByProfileId(profileId) {
     return (
       (await executeQuery(
-        `SELECT unsub_pr.Id, pr.ProfilePicName, pr.Username, pr.FirstName,pr.ID as profileId from unsubscribe_profiles as unsub_pr left join profile as pr on unsub_pr.unsubscribeProfileId = pr.ID where unsub_pr.profileId = ?`,
+        `SELECT unsub_pr.Id, pr.profilePicName,pr.userName,pr.id as profileId from unsubscribe_profiles as unsub_pr left join profile as pr on unsub_pr.unsubscribeProfileId = pr.id where unsub_pr.profileId = ?`,
         [profileId]
       )) || []
     );

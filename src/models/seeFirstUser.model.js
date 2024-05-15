@@ -26,7 +26,7 @@ class SeeFirstUser {
   static async getByProfileId(profileId) {
     return (
       (await executeQuery(
-        `SELECT sf_pr.Id, pr.ProfilePicName, pr.Username, pr.FirstName from see_first_profile as sf_pr left join profile as pr on sf_pr.seeFirstProfileId = pr.ID where sf_pr.profileId = ?`,
+        `SELECT sf_pr.Id, pr.profilePicName, pr.userName  from see_first_profile as sf_pr left join profile as pr on sf_pr.seeFirstProfileId = pr.id where sf_pr.profileId = ?`,
         [profileId]
       )) || []
     );

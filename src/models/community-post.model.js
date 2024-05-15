@@ -13,14 +13,14 @@ var CommunityPost = function (post) {
 };
 
 CommunityPost.findAll = async function (limit, offset, search) {
-  const whereCondition = `pr.Username LIKE '%${search}%'`;
+  const whereCondition = `pr.userName LIKE '%${search}%'`;
   console.log(whereCondition);
   const searchCount = await executeQuery(
     `SELECT count(c.Id) as count FROM communityPosts as c left join profile as pr on c.profileId = pr.Id WHERE ${whereCondition}`
   );
 
   const searchData = await executeQuery(
-    `SELECT p.*, pr.ProfilePicName, pr.Username, pr.FirstName from communityPosts as p left join profile as pr on p.profileId = pr.ID where ${whereCondition} order by p.createdDate DESC limit ? offset ?`,
+    `SELECT p.*, pr.profilePicName, pr.userName  from communityPosts as p left join profile as pr on p.profileId = pr.id where ${whereCondition} order by p.createdDate DESC limit ? offset ?`,
     [limit, offset]
   );
   return {
@@ -32,7 +32,7 @@ CommunityPost.findAll = async function (limit, offset, search) {
 CommunityPost.getCommunityPostById = function (profileId, result) {
   db.query(
     // "SELECT * from posts where isdeleted ='N' order by postcreationdate DESC limit 15 ",
-    "SELECT p.*, pr.ProfilePicName, pr.Username, pr.FirstName from communityPosts as p left join profile as pr on p.profileid = pr.ID where p.communityId =? order by p.createdDate DESC limit 15;",
+    "SELECT p.*, pr.profilePicName, pr.userName  from communityPosts as p left join profile as pr on p.profileid = pr.id where p.communityId =? order by p.createdDate DESC limit 15;",
     profileId,
     function (err, res) {
       if (err) {
@@ -80,7 +80,7 @@ CommunityPost.deletePost = async function (id, result) {
 CommunityPost.getPostByPostId = function (id, result) {
   db.query(
     // "SELECT * from posts where isdeleted ='N' order by postcreationdate DESC limit 15 ",
-    "SELECT p.*, pr.ProfilePicName, pr.Username, pr.FirstName from communityPosts as p left join profile as pr on p.profileId = pr.ID where  p.Id =?;",
+    "SELECT p.* from communityPosts as p left join profile as pr on p.profileId = pr.id where  p.Id =?;",
     id,
     function (err, res) {
       if (err) {

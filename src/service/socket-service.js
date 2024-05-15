@@ -70,9 +70,9 @@ const getPost = async function (params) {
     ? `p.communityId = ${communityId} AND`
     : "p.communityId IS NULL AND";
 
-  const query = `SELECT p.*, pl.ActionType as react, pr.ProfilePicName, pr.Username, pr.FirstName 
+  const query = `SELECT p.*, pl.ActionType as react, pr.profilePicName, pr.userName
   from 
-  posts as p left join postlikedislike as pl on pl.ProfileID = ? and pl.PostID = p.id  left join profile as pr on p.profileid = pr.ID 
+  posts as p left join postlikedislike as pl on pl.ProfileID = ? and pl.PostID = p.id  left join profile as pr on p.profileid = pr.id 
   where ${communityCondition}
   p.profileid not in (SELECT UnsubscribeProfileId FROM unsubscribe_profiles where ProfileId = ?) DESC, p.id DESC limit ? offset ?`;
   // AND p.isdeleted ='N' order by p.profileid in (SELECT SeeFirstProfileId from see_first_profile where ProfileId=?)
@@ -83,7 +83,7 @@ const getPost = async function (params) {
   //     if (Object.hasOwnProperty.call(posts, key)) {
   //       const post = posts[key];
   //       const query =
-  //         "select c.*,pr.ProfilePicName, pr.Username, pr.FirstName from comments as c left join profile as pr on pr.ID = c.profileId where c.postId = ?";
+  //         "select c.*,pr.profilePicName, pr.userName,  from comments as c left join profile as pr on pr.id = c.profileId where c.postId = ?";
   //       const value = [post.id];
   //       const comment = await executeQuery(query, value);
   //       post.commentList = comment;
@@ -148,20 +148,19 @@ const createNewPost = async function (data) {
             notificationByProfileId: postData?.profileid,
             actionType: "T",
           });
-          const findUser = `select u.Email,p.FirstName,p.LastName,p.Username from users as u left join profile as p on p.UserID = u.Id where p.ID = ?`;
+          const findUser = `select u.email,p.userName from users as u left join profile as p on p.userId = u.id where p.id = ?`;
           const values = [tag?.id];
           const userData = await executeQuery(findUser, values);
-          const findSenderUser = `select p.ID,p.Username,p.FirstName,p.LastName from profile as p where p.ID = ?`;
+          const findSenderUser = `select p.id,p.userName from profile as p where p.id = ?`;
           const values1 = [postData?.profileid];
           const senderData = await executeQuery(findSenderUser, values1);
           notifications.push(notification);
           if (tag?.id) {
             const userDetails = {
-              email: userData[0].Email,
-              profileId: senderData[0].ID,
-              userName: userData[0].Username,
-              senderUsername: senderData[0].Username,
-              firstName: userData[0].FirstName,
+              email: userData[0].email,
+              profileId: senderData[0].id,
+              userName: userData[0].userName,
+              senderUsername: senderData[0].userName,
               type: "post",
               postId: notification?.postId || postData?.id,
             };
@@ -171,7 +170,7 @@ const createNewPost = async function (data) {
       }
     }
 
-    const query1 = `SELECT p.*, pr.ProfilePicName, pr.Username, pr.FirstName,groupPr.FirstName as groupName, groupPr.UniqueLink as groupLink from posts as p left join profile as pr on p.profileid = pr.ID left join profile as groupPr on p.posttoprofileid = groupPr.ID where p.isdeleted ='N' and p.id =? ;`;
+    const query1 = `SELECT p.*, pr.profilePicName, pr.userName from posts as p left join profile as pr on p.profileid = pr.id where p.isdeleted ='N' and p.id =? ;`;
     const values1 = [data?.id || post.insertId];
     const posts = await executeQuery(query1, values1);
     return { notifications, posts };
@@ -190,7 +189,7 @@ const createCommunityPost = async function (data) {
   const values = [data];
   const post = await executeQuery(query, values);
   if (post.insertId) {
-    const query1 = `SELECT p.*, pr.ProfilePicName, pr.Username, pr.FirstName from communityPosts as p left join profile as pr on p.profileId = pr.ID where p.Id=?`;
+    const query1 = `SELECT p.*, pr.profilePicName, pr.userName from communityPosts as p left join profile as pr on p.profileId = pr.id where p.Id=?`;
     const values1 = [post.insertId];
     const posts = await executeQuery(query1, values1);
     return posts;
@@ -200,7 +199,7 @@ const createCommunityPost = async function (data) {
 const getCommunityPost = async function (params) {
   const { page, size, profileId } = params;
   const { limit, offset } = getPagination(page, size);
-  const query = `SELECT p.*,pl.ActionType as react, pr.ProfilePicName, pr.Username, pr.FirstName from communityPosts as p left join postlikedislike as pl on pl.ProfileID = ? and pl.communityPostId = p.Id left join profile as pr on p.profileId = pr.ID order by p.createdDate DESC limit ? offset ?`;
+  const query = `SELECT p.*,pl.ActionType as react, pr.profilePicName, pr.userName from communityPosts as p left join postlikedislike as pl on pl.ProfileID = ? and pl.communityPostId = p.Id left join profile as pr on p.profileId = pr.id order by p.createdDate DESC limit ? offset ?`;
   const values = [profileId, limit, offset];
   const posts = await executeQuery(query, values);
   return posts;
@@ -255,7 +254,7 @@ const likeFeedPost = async function (params) {
         ActionType: "L",
       });
     }
-    const query3 = `SELECT p.*, pr.ProfilePicName, pr.Username, pr.FirstName from posts as p left join profile as pr on p.profileid = pr.ID where p.id=?`;
+    const query3 = `SELECT p.*, pr.profilePicName, pr.userName from posts as p left join profile as pr on p.profileid = pr.id where p.id=?`;
     const values3 = [postId];
     const posts = await executeQuery(query3, values3);
     return { posts };
@@ -274,7 +273,7 @@ const likeFeedPost = async function (params) {
   //   const likeData = await executeQuery(query1, values1);
   //   // const postData = await getPost({ page: 1, size: 15, profileId: profileId });
   //   // return postData;
-  //   const query3 = `SELECT p.*, pr.ProfilePicName, pr.Username, pr.FirstName from posts as p left join profile as pr on p.profileid = pr.ID where p.id=?`;
+  //   const query3 = `SELECT p.*, pr.profilePicName, pr.userName,  from posts as p left join profile as pr on p.profileid = pr.id where p.id=?`;
   //   const values3 = [postId];
   //   const posts = await executeQuery(query3, values3);
   //   return { posts };
@@ -290,7 +289,7 @@ const disLikeFeedPost = async function (params) {
     const values1 = [postId, profileId];
     const post = await executeQuery(query, values);
     const likeData = await executeQuery(query1, values1);
-    const query3 = `SELECT p.*, pr.ProfilePicName, pr.Username, pr.FirstName from posts as p left join profile as pr on p.profileid = pr.ID where p.id=?`;
+    const query3 = `SELECT p.*, pr.profilePicName, pr.userName from posts as p left join profile as pr on p.profileid = pr.id where p.id=?`;
     const values3 = [postId];
     const posts = await executeQuery(query3, values3);
     return { posts };
@@ -310,7 +309,7 @@ const disLikeFeedPost = async function (params) {
   //   //   size: 15,
   //   // });
   //   // return postData;
-  //   const query3 = `SELECT p.*, pr.ProfilePicName, pr.Username, pr.FirstName from posts as p left join profile as pr on p.profileid = pr.ID where p.id=?`;
+  //   const query3 = `SELECT p.*, pr.profilePicName, pr.userName,  from posts as p left join profile as pr on p.profileid = pr.id where p.id=?`;
   //   const values3 = [postId];
   //   const posts = await executeQuery(query3, values3);
   //   return { posts };
@@ -325,34 +324,23 @@ const createNotification = async function (params) {
     actionType,
     commentId,
   } = params;
-  const query =
-    "SELECT ID,ProfilePicName, Username, FirstName,LastName from profile where ID = ?";
+  const query = "SELECT id,profilePicName, userName from profile where id = ?";
   const values = [notificationByProfileId];
   const userData = await executeQuery(query, values);
   let desc = "";
   if (commentId && actionType === "L") {
-    desc = `${
-      userData[0]?.Username || userData[0]?.FirstName
-    } liked your Comment.`;
+    desc = `${userData[0]?.userName} liked your Comment.`;
   } else if (commentId && actionType === "T") {
-    desc = `You were tagged in ${
-      userData[0]?.Username || userData[0]?.FirstName
-    }'s comment.`;
+    desc = `You were tagged in ${userData[0]?.userName}'s comment.`;
   } else {
     desc =
       actionType === "R"
-        ? `${
-            userData[0]?.Username || userData[0]?.FirstName
-          } replied to your comment`
+        ? `${userData[0]?.userName} replied to your comment`
         : actionType === "C"
-        ? `${
-            userData[0]?.Username || userData[0]?.FirstName
-          } commented on your post`
+        ? `${userData[0]?.userName} commented on your post`
         : actionType === "T"
-        ? `You were tagged in ${
-            userData[0]?.Username || userData[0]?.FirstName
-          }'s post.`
-        : `${userData[0]?.Username || userData[0]?.FirstName} liked your post.`;
+        ? `You were tagged in ${userData[0]?.userName}'s post.`
+        : `${userData[0]?.userName} liked your post.`;
   }
   console.log("desc===>", desc);
 
@@ -438,20 +426,19 @@ const createComments = async function (params) {
             commentId: params?.id || commentData.insertId,
           });
           console.log("notification", notification);
-          const findUser = `select u.Email,p.FirstName,p.LastName,p.Username from users as u left join profile as p on p.UserID = u.Id where p.ID = ?`;
+          const findUser = `select u.email,p.userName from users as u left join profile as p on p.userId = u.id where p.id = ?`;
           const values = [tag?.id];
           const userData = await executeQuery(findUser, values);
-          const findSenderUser = `select p.ID,p.Username,p.FirstName,p.LastName from profile as p where p.ID = ?`;
+          const findSenderUser = `select p.id,p.userName from profile as p where p.id = ?`;
           const values1 = [data?.profileId];
           const senderData = await executeQuery(findSenderUser, values1);
           notifications.push(notification);
           if (tag?.id) {
             const userDetails = {
-              email: userData[0].Email,
-              profileId: senderData[0].ID,
-              userName: userData[0].Username,
-              firstName: userData[0].FirstName,
-              senderUsername: senderData[0].Username,
+              email: userData[0].email,
+              profileId: senderData[0].id,
+              userName: userData[0].userName,
+              senderUsername: senderData[0].userName,
               type: "comment",
               postId: notification?.postId || postData?.id,
             };
@@ -463,7 +450,7 @@ const createComments = async function (params) {
   }
   notifications.push(notification);
   const query3 =
-    "select c.*,pr.ProfilePicName, pr.Username, pr.FirstName from comments as c left join profile as pr on pr.ID = c.profileId where c.id = ?";
+    "select c.*,pr.profilePicName, pr.userName from comments as c left join profile as pr on pr.id = c.profileId where c.id = ?";
   const value3 = [params?.id || commentData.insertId];
   const comments = await executeQuery(query3, value3);
 
@@ -490,7 +477,7 @@ const likeFeedComment = async function (params) {
   const post = await executeQuery(query, values);
   const likeData = await executeQuery(query1, values1);
   const query3 =
-    "select c.*,pr.ProfilePicName, pr.Username, pr.FirstName from comments as c left join profile as pr on pr.ID = c.profileId where c.id = ?";
+    "select c.*,pr.profilePicName, pr.userName from comments as c left join profile as pr on pr.id = c.profileId where c.id = ?";
   const value3 = [commentId];
   const comments = await executeQuery(query3, value3);
   return { comments };
@@ -506,7 +493,7 @@ const disLikeFeedComment = async function (params) {
     const post = await executeQuery(query, values);
     const likeData = await executeQuery(query1, values1);
     const query3 =
-      "select c.*,pr.ProfilePicName, pr.Username, pr.FirstName from comments as c left join profile as pr on pr.ID = c.profileId where c.id = ?";
+      "select c.*,pr.profilePicName, pr.userName from comments as c left join profile as pr on pr.id = c.profileId where c.id = ?";
     const value3 = [commentId];
     const comments = await executeQuery(query3, value3);
     return { comments };

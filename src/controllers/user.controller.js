@@ -162,8 +162,12 @@ exports.getInterest = async function (req, res) {
 
 exports.addInterest = async function (req, res) {
   try {
-    const { interestsList, profileId } = req.body;
-    const interests = await User.addInterest(interestsList, profileId);
+    const { interestsList, profileId, removeInterestList } = req.body;
+    const interests = await User.addInterest(
+      interestsList,
+      profileId,
+      removeInterestList
+    );
     return res.send({ error: false, data: interests });
   } catch (error) {
     return res
@@ -259,8 +263,8 @@ exports.forgotPassword = async function (req, res) {
 };
 
 exports.changeActiveStatus = function (req, res) {
-  console.log(req.params.id, req.query.IsActive);
-  User.changeStatus(req.params.id, req.query.IsActive, function (err, result) {
+  console.log(req.params.id, req.query.isActive);
+  User.changeStatus(req.params.id, req.query.isActive, function (err, result) {
     if (err) {
       return utils.send500(res, err);
     } else {
@@ -414,7 +418,7 @@ exports.verification = function (req, res) {
       return utils.send500(res, err);
     }
     // console.log(data);
-    // if (data.IsAdmin === "Y") {
+    // if (data.isAdmin === "Y") {
     //   return res.redirect(`${environments.ADMIN_URL}/auth/partner-login`);
     // }
     console.log(data);
@@ -434,7 +438,7 @@ exports.resendVerification = function (req, res) {
   }
   User.resendVerification(req.body?.email?.trim(), async function (err, data) {
     if (err) return utils.send500(res, err);
-    if (data.IsAdmin === "Y") {
+    if (data.isAdmin === "Y") {
       await utils.partnerRegistrationMail({ ...data }, data?.user_id);
     } else {
       await utils.registrationMail({ ...data }, data?.user_id);

@@ -6,7 +6,7 @@ const { executeQuery } = require("../helpers/utils");
 var dashboard = function () {};
 
 dashboard.getCount = async function () {
-  const query = "select count(ID) as userCount from profile";
+  const query = "select count(id) as userCount from profile";
   const query1 = "select count(id) as postCount from posts";
   const query2 = `select count(Id) as communityCount from community where pageType='community'`;
   const query3 = `select count(Id) as pageCount from community where pageType='page'`;

@@ -23,8 +23,16 @@ var Profile = function (profile) {
   this.relationshipHistory = profile.relationshipHistory;
   this.bodyType = profile.bodyType;
   this.idealDate = profile.idealDate;
+  this.profilePicName = profile.imageUrl;
   this.createdDate = profile.createdDate;
   this.updatedDate = profile.updatedDate;
+  this.matchHaveChild = profile.matchHaveChild;
+  this.matchIsVaccinated = profile.matchIsVaccinated;
+  this.matchEducation = profile.matchEducation;
+  this.matchEthnicity = profile.matchEthnicity;
+  this.matchBodyType = profile.matchBodyType;
+  this.matchReligion = profile.matchReligion;
+  this.matchIsSmoke = profile.matchIsSmoke;
 };
 
 Profile.create = function (profileData, result) {
@@ -64,7 +72,15 @@ Profile.FindById = async function (profileId) {
     p.relationshipType,
     p.relationshipHistory,
     p.bodyType,
-    p.idealDate
+    p.idealDate,
+    p.profilePicName,
+    p.matchIsSmoke,
+    p.matchReligion,
+    p.matchBodyType,
+    p.matchEthnicity,
+    p.matchEducation,
+    p.matchIsVaccinated,
+    p.matchHaveChild
   FROM profile as p left join users as u on u.id = p.userId WHERE p.id=?`;
   const values = profileId;
   const [profile] = await executeQuery(query, values);
@@ -96,9 +112,9 @@ Profile.update = function (profileId, profileData, result) {
   );
 };
 
-Profile.getUsersByUsername = async function (searchText) {
+Profile.getUsersByUsername = async function (searchText, profileId) {
   if (searchText) {
-    const query = `select p.ID as Id, p.Username,p.ProfilePicName from profile as p left join users as u on u.Id = p.UserID WHERE u.IsAdmin='N' AND u.IsSuspended='N' AND p.Username LIKE ? order by p.Username limit 500`;
+    const query = `select p.id as Id, p.userName,p.profilePicName from profile as p left join users as u on u.id = p.userId WHERE u.isAdmin='N' AND p.userName LIKE ? AND p.id not in (SELECT UnsubscribeProfileId FROM unsubscribe_profiles where ProfileId = ${profileId}) order by p.userName limit 500`;
     const values = [`${searchText}%`];
     const searchData = await executeQuery(query, values);
     return searchData;
@@ -107,12 +123,19 @@ Profile.getUsersByUsername = async function (searchText) {
   }
 };
 
-Profile.getNotificationById = async function (id) {
+Profile.getNotificationById = async function (id, limit, offset) {
   if (id) {
-    const query = `select n.*,p.Username,p.FirstName,p.ProfilePicName from notifications as n left join profile as p on p.ID = n.notificationByProfileId where n.notificationToProfileId =? order by createDate desc`;
-    const values = [id];
+    const query = `select n.*,p.userName,p.profilePicName from notifications as n left join profile as p on p.id = n.notificationByProfileId left join groupMembers as g on g.groupId = n.groupId and g.profileId != n.notificationByProfileId where g.profileId = ? OR n.notificationToProfileId =? order by n.createDate desc limit ${limit} offset ${offset}`;
+    const values = [id, id];
+    const searchCount = await executeQuery(
+      `SELECT count(id) as count FROM notifications as n WHERE n.notificationToProfileId = ${id}`
+    );
     const notificationData = await executeQuery(query, values);
-    return notificationData;
+    // return notificationData;
+    return {
+      count: searchCount?.[0]?.count || 0,
+      data: notificationData,
+    };
   } else {
     return { error: "data not found" };
   }
@@ -166,10 +189,10 @@ Profile.groupsAndPosts = async () => {
     'SELECT * FROM profile WHERE AccountType = "G" AND IsDeleted = "N" AND IsActivated = "Y" ORDER BY FirstName'
   );
 
-  const groupIds = groupsResult.map((group) => group.ID);
+  const groupIds = groupsResult.map((group) => group.id);
 
   const postsResult = await executeQuery(
-    'SELECT * FROM posts WHERE isdeleted = "N" AND posttoprofileid IS NOT NULL AND posttype NOT IN ("CHAT", "TA") AND posttoprofileid IN (?) ORDER BY ID DESC',
+    'SELECT * FROM posts WHERE isdeleted = "N" AND posttoprofileid IS NOT NULL AND posttype NOT IN ("CHAT", "TA") AND posttoprofileid IN (?) ORDER BY id DESC',
     [groupIds]
   );
 
@@ -177,13 +200,13 @@ Profile.groupsAndPosts = async () => {
     .map((post) => post.posttoprofileid)
     .filter((value, index, self) => self.indexOf(value) === index);
   const groupsWithPosts = groupsResult.filter((group) =>
-    allGroupWithPosts.includes(group.ID)
+    allGroupWithPosts.includes(group.id)
   );
 
   const groupedPosts = groupsWithPosts.map((group) => {
     const groupPosts = postsResult
-      .filter((post) => post.posttoprofileid === group.ID)
-      .sort((a, b) => b.ID - a.ID)
+      .filter((post) => post.posttoprofileid === group.id)
+      .sort((a, b) => b.id - a.id)
       .slice(0, 6);
 
     const groupPostsInfo = groupPosts.map((post) => {
@@ -195,7 +218,7 @@ Profile.groupsAndPosts = async () => {
       }
 
       return {
-        postID: post.ID || post.id,
+        postID: post.id || post.id,
         postType: post.posttype,
         sharedPostID: post.sharedpostid,
         postToSharedDesc: post.postdescription,
@@ -208,7 +231,7 @@ Profile.groupsAndPosts = async () => {
     });
 
     return {
-      Id: group.ID,
+      Id: group.id,
       name: group.FirstName,
       groupUniqueLink: group.UniqueLink,
       posts: groupPostsInfo,
@@ -220,7 +243,7 @@ Profile.groupsAndPosts = async () => {
 
 Profile.getGroups = async () => {
   const groupsResult = await executeQuery(
-    'SELECT ID, UniqueLink, FirstName FROM profile WHERE AccountType = "G" AND IsDeleted = "N" AND IsActivated = "Y" ORDER BY FirstName'
+    'SELECT id, UniqueLink, FirstName FROM profile WHERE AccountType = "G" AND IsDeleted = "N" AND IsActivated = "Y" ORDER BY FirstName'
   );
 
   return groupsResult;
@@ -236,7 +259,7 @@ Profile.getGroupBasicDetails = async (uniqueLink) => {
 };
 
 Profile.getGroupPostById = async (id, limit, offset) => {
-  let query = `SELECT * FROM posts WHERE isdeleted = "N" AND posttoprofileid IS NOT NULL AND posttype NOT IN ("CHAT", "TA") AND posttoprofileid=${id} ORDER BY ID DESC `;
+  let query = `SELECT * FROM posts WHERE isdeleted = "N" AND posttoprofileid IS NOT NULL AND posttype NOT IN ("CHAT", "TA") AND posttoprofileid=${id} ORDER BY id DESC `;
 
   if (limit > 0 && offset >= 0) {
     query += `LIMIT ${limit} OFFSET ${offset}`;
@@ -248,7 +271,7 @@ Profile.getGroupPostById = async (id, limit, offset) => {
 
 Profile.getGroupFileResourcesById = async (id) => {
   const posts = await executeQuery(
-    "SELECT p.ID AS PostID, p.PostDescription, p.PostCreationDate AS UploadedOn, ph.PhotoName as FileName FROM posts AS p LEFT JOIN photos as ph on p.ID = ph.PostID WHERE isdeleted = 'N' AND  p.posttype = 'F' AND (p.ProfileID = ? OR p.PostToProfileID = ?)",
+    "SELECT p.id AS PostID, p.PostDescription, p.PostCreationDate AS UploadedOn, ph.PhotoName as FileName FROM posts AS p LEFT JOIN photos as ph on p.id = ph.PostID WHERE isdeleted = 'N' AND  p.posttype = 'F' AND (p.ProfileID = ? OR p.PostToProfileID = ?)",
     [id, id]
   );
 
@@ -278,7 +301,7 @@ Profile.updateImages = async (data, id) => {
   }
 };
 
-Profile.getProfiles = async (limit, offset) => {
+Profile.getProfiles = async (limit, offset, id, gender) => {
   let query = `SELECT p.id as profileId,
     p.userName,
     p.userId,
@@ -304,7 +327,9 @@ Profile.getProfiles = async (limit, offset) => {
     p.relationshipHistory,
     p.bodyType,
     p.idealDate
-  FROM profile as p left join users as u on u.id = p.userId ORDER BY p.id DESC`;
+  FROM profile as p left join users as u on u.id = p.userId where p.id != ${id} and u.gender = '${
+    gender === "man" ? "woman" : "man"
+  }' and p.id not in (SELECT UnsubscribeProfileId FROM unsubscribe_profiles where ProfileId = ${id}) ORDER BY p.id DESC`;
   if (limit > 0 && offset >= 0) {
     query += ` LIMIT ${limit} OFFSET ${offset}`;
   }
@@ -329,9 +354,9 @@ Profile.getProfiles = async (limit, offset) => {
   return profiles || [];
 };
 
-Profile.getProfilePictures = async (limit, offset) => {
+Profile.getProfilePictures = async (limit, offset, id, gender) => {
   try {
-    let query = `select pp.id,pp.profileId,pp.imageUrl,p.userName from profilePictures as pp left join profile as p on p.id = pp.profileId order by pp.id DESC`;
+    let query = `select pp.id,pp.profileId,pp.imageUrl,p.userName from profilePictures as pp left join profile as p on p.id = pp.profileId left join users as u on u.id = p.userId where pp.profileId != ${id} and u.gender != '${gender}' and p.id not in (SELECT UnsubscribeProfileId FROM unsubscribe_profiles where ProfileId = ${id}) order by pp.id DESC`;
     if (limit > 0 && offset >= 0) {
       query += ` LIMIT ${limit} OFFSET ${offset}`;
     }
