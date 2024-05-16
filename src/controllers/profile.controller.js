@@ -92,6 +92,9 @@ exports.updateProfile = async function (req, res) {
         };
         await Profile.images(data);
       }
+      if (req.body?.interests.length) {
+        await User.addInterest(req.body.interests, profileId, []);
+      }
       profile.updatedDate = moment(new Date()).format("YYYY-MM-DD HH:mm:ss");
       Profile.update(profileId, profile, async function (err, profile) {
         if (err) return utils.send500(res, err);
