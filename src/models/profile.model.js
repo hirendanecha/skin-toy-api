@@ -361,6 +361,16 @@ Profile.getProfilePictures = async (limit, offset, id, gender) => {
       query += ` LIMIT ${limit} OFFSET ${offset}`;
     }
     const profilePictures = await executeQuery(query);
+    const query1 = `SELECT GROUP_CONCAT(profileId) AS profileIds FROM favourite_profiles WHERE likedByProfileId = ${id}`;
+    const [favoritesProfile] = await executeQuery(query1);
+    console.log(favoritesProfile);
+    profilePictures.forEach((element) => {
+      if (favoritesProfile?.profileIds?.includes(element.profileId)) {
+        element["isFavorite"] = true;
+      } else {
+        element["isFavorite"] = false;
+      }
+    });
     return profilePictures;
   } catch (error) {
     return error;

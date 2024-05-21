@@ -64,6 +64,15 @@ Post.findAll = async function (params) {
   p.profileid not in (SELECT UnsubscribeProfileId FROM unsubscribe_profiles where ProfileId = ?) AND p.isdeleted ='N' order by p.profileid in (SELECT SeeFirstProfileId from see_first_profile where ProfileId=?) DESC, p.id DESC limit ? offset ?`;
   const values = [profileId, profileId, profileId, limit, offset];
   const posts = await executeQuery(query, values);
+  const query1 = `SELECT GROUP_CONCAT(profileId) AS profileIds FROM favourite_profiles WHERE likedByProfileId = ${profileId}`;
+  const [favoritesProfile] = await executeQuery(query1);
+  posts.forEach((element) => {
+    if (favoritesProfile?.profileIds?.includes(element.profileid)) {
+      element["isFavorite"] = true;
+    } else {
+      element["isFavorite"] = false;
+    }
+  });
 
   return getPaginationData(
     {
@@ -90,6 +99,15 @@ Post.getPostByProfileId = async function (params) {
   const query = `SELECT p.*, pr.profilePicName, pr.userName from posts as p left join profile as pr on p.profileid = pr.id  where p.isdeleted ='N' and p.profileid =? and p.posttype in ('S', 'R','V') ${whereCondition} order by p.postcreationdate DESC limit ? offset ?;`;
   const values = [profileId, limit, offset];
   const postData = await executeQuery(query, values);
+  const query1 = `SELECT GROUP_CONCAT(profileId) AS profileIds FROM favourite_profiles WHERE likedByProfileId = ${profileId}`;
+  const [favoritesProfile] = await executeQuery(query1);
+  postData.forEach((element) => {
+    if (favoritesProfile?.profileIds?.includes(element.profileid)) {
+      element["isFavorite"] = true;
+    } else {
+      element["isFavorite"] = false;
+    }
+  });
   // return postData;
   return getPaginationData(
     {

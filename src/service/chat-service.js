@@ -173,7 +173,7 @@ const createChatRoom = async function (params) {
         roomId: room?.insertId,
         notificationByProfileId: data?.profileId1,
         actionType: "M",
-        msg: "invited you to private chat",
+        msg: `invited you to private ${params.type}`,
       });
       console.log(notification);
       const findUser = `select u.email,p.userName from users as u left join profile as p on p.userId = u.id where p.id = ?`;
@@ -187,7 +187,7 @@ const createChatRoom = async function (params) {
         profileId: senderData[0].id,
         userName: userData[0].userName,
         senderUsername: senderData[0].userName,
-        msg: `${senderData[0].userName} invited you to private chat`,
+        msg: `${senderData[0].userName} invited you to private ${params.type}`,
       };
       console.log(userDetails);
       await notificationMailOnInvite(userDetails);
