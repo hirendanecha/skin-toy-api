@@ -91,6 +91,13 @@ Profile.FindById = async function (profileId) {
   const value2 = [profile.profileId];
   const profilePictures = await executeQuery(query1, value1);
   const interestList = await executeQuery(query2, value2);
+  const query3 = `select count(id) as roomCount from chatRooms where (profileId1 = ${profile.profileId} or profileId2 = ${profile.profileId}) AND isAccepted = 'Y'`;
+  const [chatRooms] = await executeQuery(query3);
+  if (chatRooms.roomCount > 0) {
+    profile["isChatRoomCreated"] = true;
+  } else {
+    profile["isChatRoomCreated"] = false;
+  }
   profile["profilePictures"] = profilePictures;
   profile["interestList"] = interestList;
   return profile;
