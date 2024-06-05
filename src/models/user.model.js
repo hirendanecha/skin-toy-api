@@ -48,6 +48,7 @@ User.login = function (email, Id, result) {
             p.matchEthnicity,
             p.matchEducation,
             p.matchIsVaccinated,
+            p.userStatus,
             p.matchHaveChild
      FROM users as u left join profile as p on p.userId = u.id WHERE u.email = ? AND u.id = ?`,
     [email, Id],

@@ -80,6 +80,7 @@ Profile.FindById = async function (profileId) {
     p.matchEthnicity,
     p.matchEducation,
     p.matchIsVaccinated,
+    p.userStatus,
     p.matchHaveChild
   FROM profile as p left join users as u on u.id = p.userId WHERE p.id=?`;
   const values = profileId;
