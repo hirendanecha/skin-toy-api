@@ -699,25 +699,17 @@ socket.config = (server) => {
             if (params.groupId) {
               console.log("in=========>");
               io.to(`${params.groupId}`).emit("new-message", data.newMessage);
-              if (data?.notification) {
-                if (data?.notification) {
-                  io.to(`${params.groupId}`).emit(
-                    "notification",
-                    data?.notification
-                  );
-                }
-              }
+              io.to(`${params.groupId}`).emit(
+                "notification",
+                data?.notification
+              );
             } else {
               console.log("start call=========>", data);
               io.to(`${params.roomId}`).emit("new-message", data.newMessage);
-              if (data?.notification) {
-                if (data?.notification) {
-                  io.to(`${params.roomId}`).emit(
-                    "notification",
-                    data?.notification
-                  );
-                }
-              }
+              io.to(`${params.roomId}`).emit(
+                "notification",
+                data?.notification
+              );
             }
             // for (const key in data?.notifications) {
             //   if (Object.hasOwnProperty.call(data?.notifications, key)) {
@@ -969,6 +961,26 @@ socket.config = (server) => {
       try {
         if (params) {
           const data = await chatService.changeUserStatus(params);
+          if (cb) {
+            return cb(data);
+          }
+        }
+      } catch (error) {
+        cb(error);
+      }
+    });
+
+    socket.on("get-messages", async (params, cb) => {
+      logger.info("get-messages", {
+        ...params,
+        address,
+        id: socket.id,
+        method: "get-messages",
+      });
+      try {
+        if (params) {
+          const data = await chatService.getMessages(params);
+          console.log("messageList==>", data);
           if (cb) {
             return cb(data);
           }
