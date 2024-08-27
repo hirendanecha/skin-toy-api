@@ -33,6 +33,9 @@ var Profile = function (profile) {
   this.matchBodyType = profile.matchBodyType;
   this.matchReligion = profile.matchReligion;
   this.matchIsSmoke = profile.matchIsSmoke;
+  this.callNotificationSound = profile.callNotificationSound;
+  this.messageNotificationSound = profile.messageNotificationSound;
+  this.tagNotificationSound = profile.tagNotificationSound;
 };
 
 Profile.create = function (profileData, result) {
@@ -81,7 +84,10 @@ Profile.FindById = async function (profileId) {
     p.matchEducation,
     p.matchIsVaccinated,
     p.userStatus,
-    p.matchHaveChild
+    p.matchHaveChild,
+    p.messageNotificationSound,
+    p.callNotificationSound,
+    p.tagNotificationSound
   FROM profile as p left join users as u on u.id = p.userId WHERE p.id=?`;
   const values = profileId;
   const [profile] = await executeQuery(query, values);
@@ -174,6 +180,17 @@ Profile.editNotifications = function (id, isRead, result) {
       }
     }
   );
+};
+
+Profile.editNotificationSound = function (id, key, value) {
+  try {
+    const query = `update profile set ${key} = '${value}' where ID = ${id}`;
+    console.log(query);
+    const data = executeQuery(query);
+    return data;
+  } catch (error) {
+    return error;
+  }
 };
 
 Profile.deleteNotification = function (user_id, result) {
